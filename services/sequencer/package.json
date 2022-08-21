@@ -1,0 +1,6 @@
+{
+    "name": "sequencer",
+    "dependencies": {
+        "fastify": "^4.5.2"
+    }
+}
