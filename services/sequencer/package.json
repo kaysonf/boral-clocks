@@ -1,7 +1,0 @@
-{
-    "name": "sequencer",
-    "dependencies": {
-        "fastify": "^4.5.2",
-        "nodemon": "^2.0.19"
-    }
-}

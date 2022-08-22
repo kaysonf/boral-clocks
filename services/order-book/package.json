@@ -1,0 +1,16 @@
+{
+    "name": "order-book",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "start": "node ./dist/server.js"
+    },
+    "dependencies": {
+        "fastify": "^4.5.2",
+        "nodemon": "^2.0.19"
+    },
+    "devDependencies": {
+        "@tsconfig/node14": "^1.0.3",
+        "@types/node": "^18.7.8",
+        "typescript": "^4.7.4"
+    }
+}
