@@ -9,7 +9,7 @@ const fastify = (0, fastify_1.default)({
     logger: true
 });
 fastify.get('/', async (request, reply) => {
-    return { hello: 'world' };
+    return { hello: 'probably' };
 });
 /**
  * Run the server!
