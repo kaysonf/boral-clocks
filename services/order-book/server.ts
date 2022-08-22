@@ -4,7 +4,7 @@ const fastify = Fastify({
   logger: true,
 });
 
-fastify.get("/", async (_) => {
+fastify.get("/", async () => {
   return { hello: "pro" };
 });
 
