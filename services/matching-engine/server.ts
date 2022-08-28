@@ -1,18 +1,8 @@
 // ESM
 import Fastify from "fastify";
-import { askComparator, bidComparator, Book } from "./src/book/Book";
-import { Order } from "./src/models/Order";
-import { PriorityQueue } from "./src/utils";
+import { Book } from "./src/book/Book";
 
-const book = new Book({
-  symbol: "BTCUSD",
-  bids: new PriorityQueue<Order>(bidComparator),
-  asks: new PriorityQueue<Order>(askComparator),
-  systemConfig: {
-    getCurrentTimestamp: () => Date.now(),
-    getOrderId: () => "placeholder",
-  },
-});
+const book = new Book();
 
 // const bookKeeper = new Map<string, Book>();
 
