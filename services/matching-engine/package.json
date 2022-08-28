@@ -1,7 +1,7 @@
 {
     "name": "matching-engine",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
+        "build": "rm -rf ./dist && tsc -b tsconfig.json",
         "serve": "node ./dist/server.js",
         "dev": "tsc-watch --onSuccess \"yarn serve\"",
         "test": "jest ./__tests__ --verbose"
