@@ -1,11 +1,27 @@
 // ESM
 import Fastify from "fastify";
+import { askComparator, bidComparator, Book } from "./src/Book";
+import { Order } from "./src/orders/types";
+import { PriorityQueue } from "./src/utils";
+
+const book = new Book({
+  symbol: "BTCUSD",
+  bids: new PriorityQueue<Order>(bidComparator),
+  asks: new PriorityQueue<Order>(askComparator),
+  systemConfig: {
+    getCurrentTimestamp: () => Date.now(),
+    getOrderId: () => "placeholder",
+  },
+});
+
+// const bookKeeper = new Map<string, Book>();
+
 const fastify = Fastify({
   logger: true,
 });
 
 fastify.get("/", async () => {
-  return { hello: "pro" };
+  return { hello: book.getSpread() };
 });
 
 /**

@@ -4,7 +4,8 @@
     "services/**"
   ],
   "scripts": {
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "test": "yarn workspaces foreach run test"
   },
   "packageManager": "yarn@3.2.2",
   "devDependencies": {
