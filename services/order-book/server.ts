@@ -1,7 +1,7 @@
 // ESM
 import Fastify from "fastify";
-import { askComparator, bidComparator, Book } from "./src/Book";
-import { Order } from "./src/orders/types";
+import { askComparator, bidComparator, Book } from "./src/book/Book";
+import { Order } from "./src/models/Order";
 import { PriorityQueue } from "./src/utils";
 
 const book = new Book({

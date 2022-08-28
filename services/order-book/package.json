@@ -4,7 +4,7 @@
         "build": "tsc -p tsconfig.json",
         "serve": "node ./dist/server.js",
         "dev": "tsc-watch --onSuccess \"yarn serve\"",
-        "test": "jest ./__tests__"
+        "test": "jest ./__tests__ --verbose"
     },
     "dependencies": {
         "fastify": "^4.5.2",
