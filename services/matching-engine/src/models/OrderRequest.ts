@@ -1,8 +1,6 @@
 type BaseOrderRequest = {
-  symbol: string;
   quantity: number;
   side: "BID" | "ASK";
-  owner: string;
 };
 
 export type LimitOrderRequest = {

@@ -1,5 +1,5 @@
 {
-    "name": "order-book",
+    "name": "matching-engine",
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "serve": "node ./dist/server.js",

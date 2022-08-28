@@ -5516,6 +5516,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"matching-engine@workspace:services/matching-engine":
+  version: 0.0.0-use.local
+  resolution: "matching-engine@workspace:services/matching-engine"
+  dependencies:
+    "@babel/preset-env": ^7.18.10
+    "@babel/preset-typescript": ^7.18.6
+    "@tsconfig/node14": ^1.0.3
+    "@types/jest": ^28.1.8
+    "@types/node": ^18.7.8
+    fastify: ^4.5.2
+    jest: ^29.0.1
+    ts-jest: ^28.0.8
+    tsc-watch: ^5.0.3
+    typescript: ^4.7.4
+  languageName: unknown
+  linkType: soft
+
 "merge-stream@npm:^2.0.0":
   version: 2.0.0
   resolution: "merge-stream@npm:2.0.0"
@@ -5919,23 +5936,6 @@ __metadata:
   checksum: dbc6fa065604b24ea57d734261914e697bd73b69eff7f18e967e8912aa2a40a19a9f599a507fa805be6c13c24c4eae8c71306c239d517d42d4c041c942f508a0
   languageName: node
   linkType: hard
-
-"order-book@workspace:services/order-book":
-  version: 0.0.0-use.local
-  resolution: "order-book@workspace:services/order-book"
-  dependencies:
-    "@babel/preset-env": ^7.18.10
-    "@babel/preset-typescript": ^7.18.6
-    "@tsconfig/node14": ^1.0.3
-    "@types/jest": ^28.1.8
-    "@types/node": ^18.7.8
-    fastify: ^4.5.2
-    jest: ^29.0.1
-    ts-jest: ^28.0.8
-    tsc-watch: ^5.0.3
-    typescript: ^4.7.4
-  languageName: unknown
-  linkType: soft
 
 "os-tmpdir@npm:~1.0.2":
   version: 1.0.2

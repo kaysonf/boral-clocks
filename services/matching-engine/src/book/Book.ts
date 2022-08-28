@@ -1,45 +1,36 @@
 import { BookEvent } from "../models/BookEvent";
 import { Order } from "../models/Order";
 import { OrderRequest } from "../models/OrderRequest";
-import { OperationResult, SystemConfig } from "../system";
+import { OperationResult } from "../system";
 import { PriorityQueue } from "../utils";
 
-export const askComparator = (a: Order, b: Order) => {
+const askComparator = (a: Order, b: Order) => {
   let ret = a.price - b.price;
   if (ret == 0) {
-    ret = a.timestamp - b.timestamp;
+    ret = a.seq_no - b.seq_no;
   }
   return ret;
 };
 
-export const bidComparator = (a: Order, b: Order) => {
+const bidComparator = (a: Order, b: Order) => {
   let ret = b.price - a.price;
   if (ret == 0) {
-    ret = a.timestamp - b.timestamp;
+    ret = a.seq_no - b.seq_no;
   }
   return ret;
 };
 
 export class Book {
-  private symbol: string;
   private bids: PriorityQueue<Order>;
   private asks: PriorityQueue<Order>;
-  private systemConfig: SystemConfig;
+
+  private sequenceNumber = 0;
 
   public onEvent?: (e: BookEvent) => void;
 
-  constructor(params: {
-    symbol: string;
-
-    bids: PriorityQueue<Order>;
-    asks: PriorityQueue<Order>;
-
-    systemConfig: SystemConfig;
-  }) {
-    this.symbol = params.symbol;
-    this.bids = params.bids;
-    this.asks = params.asks;
-    this.systemConfig = params.systemConfig;
+  constructor() {
+    this.bids = new PriorityQueue<Order>(bidComparator);
+    this.asks = new PriorityQueue<Order>(askComparator);
   }
 
   public submitOrderRequest = (
@@ -82,7 +73,8 @@ export class Book {
     return bestAsk.price - bestBid.price;
   };
 
-  public getSymbol = () => this.symbol;
+  public getBids = () => this.bids as Readonly<PriorityQueue<Order>>;
+  public getAsks = () => this.asks as Readonly<PriorityQueue<Order>>;
 
   private createOrder = (
     orderRequest: OrderRequest
@@ -93,8 +85,7 @@ export class Book {
           status: "success",
           data: {
             ...orderRequest,
-            id: this.systemConfig.getOrderId(),
-            timestamp: this.systemConfig.getCurrentTimestamp(),
+            seq_no: this.getUpdatedSeqNo(),
             status: "ACTIVE",
           },
         };
@@ -111,8 +102,7 @@ export class Book {
           status: "success",
           data: {
             ...orderRequest,
-            id: this.systemConfig.getOrderId(),
-            timestamp: this.systemConfig.getCurrentTimestamp(),
+            seq_no: this.getUpdatedSeqNo(),
             status: "ACTIVE",
             price: marketPriceResult.data,
           },
@@ -120,6 +110,8 @@ export class Book {
       }
     }
   };
+
+  private getUpdatedSeqNo = () => ++this.sequenceNumber;
 
   private getMarketPrice = (
     side: Order["side"]

@@ -1,24 +1,14 @@
-import { askComparator, bidComparator, Book } from "../../src/book/Book";
+import { Book } from "../../src/book/Book";
 import { Order } from "../../src/models/Order";
 import { LimitOrderRequest, MarketOrderRequest } from "../../src/models/OrderRequest";
-import { PriorityQueue } from "../../src/utils";
 
 describe("matching engine", () => {
-    let bids: PriorityQueue<Order> = new PriorityQueue<Order>(bidComparator);
-    let asks: PriorityQueue<Order> = new PriorityQueue<Order>(askComparator);
 
-    const systemConfig = {
-        getCurrentTimestamp: jest.fn().mockReturnValue(0),
-        getOrderId: jest.fn().mockReturnValue("0"),
-    };
-
-    let book: Book = new Book({ symbol: "BTCUSD", bids, asks, systemConfig });
+    let book: Book = new Book();
 
     beforeEach(() => {
-        bids = new PriorityQueue<Order>(bidComparator);
-        asks = new PriorityQueue<Order>(askComparator);
 
-        book = new Book({ symbol: "BTCUSD", bids, asks, systemConfig });
+        book = new Book();
     });
 
     // TODO
@@ -28,8 +18,6 @@ describe("matching engine", () => {
             type: "limit",
             side: "BID",
             quantity: 3,
-            symbol: "BTCUSD",
-            owner: "kayson",
             price: 1,
         };
 
@@ -37,8 +25,6 @@ describe("matching engine", () => {
             type: "limit",
             side: "BID",
             quantity: 5,
-            symbol: "BTCUSD",
-            owner: "kayson",
             price: 2,
         };
 
@@ -57,8 +43,6 @@ describe("matching engine", () => {
             type: "market",
             side: "ASK",
             quantity: 7,
-            symbol: "BTCUSD",
-            owner: "kayson",
         }
 
         book.submitOrderRequest(marketOrder)
@@ -67,51 +51,39 @@ describe("matching engine", () => {
         const expectedTransactions: { ask: Order, bid: Order }[] = [
             {
                 ask: {
-                    id: "3",
-                    timestamp: 3,
+                    seq_no: 4,
                     price: limitOrder1.price,
                     type: "market",
                     side: "ASK",
                     status: "ACTIVE",
                     quantity: limitOrder1.quantity,
-                    symbol: "BTCUSD",
-                    owner: "kayson",
                 },
 
                 bid: {
-                    id: "1",
-                    timestamp: 3,
+                    seq_no: 5,
                     type: "limit",
                     side: "BID",
                     status: "FILLED",
                     quantity: limitOrder1.quantity,
-                    symbol: "BTCUSD",
-                    owner: "kayson",
                     price: limitOrder1.price,
                 }
             },
             {
                 ask: {
-                    id: "3",
-                    timestamp: 3,
+                    seq_no: 6,
                     price: limitOrder2.price,
                     type: "market",
                     side: "ASK",
                     status: "FILLED",
                     quantity: marketOrder.quantity - limitOrder1.quantity,
-                    symbol: "BTCUSD",
-                    owner: "kayson",
                 },
 
                 bid: {
-                    id: "2",
-                    timestamp: 3,
+                    seq_no: 7,
                     type: "limit",
                     side: "BID",
                     status: "ACTIVE",
                     quantity: limitOrder2.quantity - marketOrder.quantity - limitOrder1.quantity,
-                    symbol: "BTCUSD",
-                    owner: "kayson",
                     price: limitOrder2.price,
                 }
             }
@@ -126,8 +98,6 @@ describe("matching engine", () => {
             type: "limit",
             side: "ASK",
             quantity: 1,
-            symbol: "BTCUSD",
-            owner: "kayson",
             price: 2,
         };
 
@@ -139,15 +109,13 @@ describe("matching engine", () => {
             type: "limit",
             side: "BID",
             quantity: 1,
-            symbol: "BTCUSD",
-            owner: "kayson",
             price: 1,
         };
         book.submitOrderRequest(bidOrder)
 
         expect(book.getSpread()).toStrictEqual(1)
 
-        const removeAskOrder = () => asks.dequeue();
+        const removeAskOrder = () => book.getAsks().dequeue();
 
         removeAskOrder();
 
