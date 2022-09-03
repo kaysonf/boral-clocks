@@ -1,8 +1,5 @@
 // ESM
 import Fastify from "fastify";
-import { Book } from "./src/book/Book";
-
-const book = new Book();
 
 // const bookKeeper = new Map<string, Book>();
 
@@ -11,7 +8,7 @@ const fastify = Fastify({
 });
 
 fastify.get("/", async () => {
-  return { hello: book.getSpread() };
+  return { hello: "world" };
 });
 
 /**
