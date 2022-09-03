@@ -1,5 +1,3 @@
-import { TransactionEvent } from "../models/Events";
-
 import { OrderRequest } from "../models/OrderRequest";
 import { IOrderCore, LimitOrder, MarketOrder, Order } from "../order";
 import { OperationResult, Sequenced } from "../system";
@@ -26,8 +24,6 @@ const bidComparator = (a: IOrderCore, b: IOrderCore) => {
 export class MatchingEngine {
   private bids: PriorityQueue<IOrderCore>;
   private asks: PriorityQueue<IOrderCore>;
-
-  public onTransaction?: (e: TransactionEvent) => void;
 
   constructor(private _idGen: () => string) {
     this.bids = new PriorityQueue<IOrderCore>(bidComparator);
