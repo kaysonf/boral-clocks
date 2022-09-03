@@ -37,7 +37,6 @@ export class MarketOrder implements IOrderCore {
       ...this._orderRequest,
       id: this._id,
       status: this._status,
-      price: this.getPrice(),
     };
   };
 }

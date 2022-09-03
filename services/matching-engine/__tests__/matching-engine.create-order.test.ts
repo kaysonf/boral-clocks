@@ -1,4 +1,4 @@
-import { BEST_PRICE, MatchingEngine } from "../src/engine";
+import { MatchingEngine } from "../src/engine";
 import {
   LimitOrderRequest,
   MarketOrderRequest,
@@ -54,7 +54,6 @@ describe("matching engine creating orders", () => {
     const askOrder = matchingEngine.createOrder(askMarketOrderRequest);
     const expectedAskOrder: Sequenced<Order> = {
       ...askMarketOrderRequest,
-      price: BEST_PRICE.ASK,
       id: "1",
       status: "ACTIVE",
     };
@@ -72,7 +71,6 @@ describe("matching engine creating orders", () => {
 
     const expectedBidOrder: Sequenced<Order> = {
       ...bidMarketOrderRequest,
-      price: BEST_PRICE.BID,
       id: "2",
       status: "ACTIVE",
     };
@@ -102,7 +100,6 @@ describe("matching engine creating orders", () => {
 
     const expectedOrder: Sequenced<Order> = {
       ...askMarketOrderRequest,
-      price: bidLimitOrderRequest.price,
       id: "2",
       status: "ACTIVE",
     };

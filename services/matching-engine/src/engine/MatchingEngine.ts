@@ -32,7 +32,10 @@ export class MatchingEngine {
   private bids: PriorityQueue<IOrderCore>;
   private asks: PriorityQueue<IOrderCore>;
 
-  constructor(private _idGen: () => string) {
+  private lastTransactedBid = BEST_PRICE.ASK;
+  private lastTransactedAsk = BEST_PRICE.BID;
+
+  constructor(private _generateId: () => string) {
     this.bids = new PriorityQueue<IOrderCore>(bidComparator);
     this.asks = new PriorityQueue<IOrderCore>(askComparator);
   }
@@ -44,7 +47,7 @@ export class MatchingEngine {
 
     switch (orderRequest.type) {
       case "limit": {
-        order = new LimitOrder(orderRequest, this._idGen(), "ACTIVE");
+        order = new LimitOrder(orderRequest, this._generateId(), "ACTIVE");
 
         break;
       }
@@ -52,9 +55,11 @@ export class MatchingEngine {
       case "market": {
         order = new MarketOrder(
           orderRequest,
-          this._idGen(),
+          this._generateId(),
           "ACTIVE",
-          orderRequest.side === "ASK" ? this.bestAskPrice : this.bestBidPrice
+          orderRequest.side === "ASK"
+            ? this.getMarketAskPrice
+            : this.getMarketBidPrice
         );
 
         break;
@@ -79,10 +84,13 @@ export class MatchingEngine {
   public settle = (): OrderFulfilled[] => {
     const ordersFulfilled: OrderFulfilled[] = [];
 
-    let transactionStatus = this.getTransactionStatus();
+    let priceLevels = this.priceLevelsOverlap();
 
-    while (transactionStatus.canTransact) {
-      const { bestAsk, bestBid } = transactionStatus;
+    while (priceLevels.overlap) {
+      const { bestAsk, bestBid } = priceLevels;
+
+      // this.lastTransactedAskPrice = bestAsk.getPrice();
+      // this.lastTransactedBidPrice = bestBid.getPrice();
 
       if (bestAsk.getCurrentQuantity() === bestBid.getCurrentQuantity()) {
         const bid = this.bids.dequeue();
@@ -175,13 +183,13 @@ export class MatchingEngine {
         ordersFulfilled.push(second);
       }
 
-      transactionStatus = this.getTransactionStatus();
+      priceLevels = this.priceLevelsOverlap();
     }
 
     return ordersFulfilled;
   };
 
-  private bestAskPrice = () => {
+  private getMarketAskPrice = () => {
     const bestBid = this.bids.peek();
 
     const onlyMarketOrders = bestBid?.getType() === "market";
@@ -193,7 +201,7 @@ export class MatchingEngine {
     return bestBid.getPrice();
   };
 
-  private bestBidPrice = () => {
+  private getMarketBidPrice = () => {
     const bestAsk = this.asks.peek();
 
     const onlyMarketOrders = bestAsk?.getType() === "market";
@@ -205,20 +213,20 @@ export class MatchingEngine {
     return bestAsk.getPrice();
   };
 
-  private getTransactionStatus = ():
-    | { canTransact: true; bestAsk: IOrderCore; bestBid: IOrderCore }
-    | { canTransact: false } => {
+  private priceLevelsOverlap = ():
+    | { overlap: true; bestAsk: IOrderCore; bestBid: IOrderCore }
+    | { overlap: false } => {
     const bestBid = this.bids.peek();
     const bestAsk = this.asks.peek();
 
     if (bestBid === undefined || bestAsk === undefined) {
-      return { canTransact: false };
+      return { overlap: false };
     }
 
     if (bestAsk.getPrice() <= bestBid.getPrice()) {
-      return { canTransact: true, bestAsk, bestBid };
+      return { overlap: true, bestAsk, bestBid };
     }
 
-    return { canTransact: false };
+    return { overlap: false };
   };
 }
