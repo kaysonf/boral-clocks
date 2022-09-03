@@ -16,6 +16,8 @@ export class MarketOrder implements IOrderCore {
 
   public getId = () => this._id;
 
+  public getSeqNo = () => this._orderRequest.seq_no;
+
   public getSide = () => this._orderRequest.side;
 
   public getType = () => this._orderRequest.type;

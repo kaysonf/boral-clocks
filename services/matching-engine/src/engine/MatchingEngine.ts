@@ -13,17 +13,17 @@ import { BEST_PRICE } from "./constants";
 type SequencedOrder = Sequenced<Order>;
 
 const askComparator = (a: IOrderCore, b: IOrderCore) => {
-  let ret = a.toSerialized().price - b.toSerialized().price;
+  let ret = a.getPrice() - b.getPrice();
   if (ret == 0) {
-    ret = a.toSerialized().seq_no - b.toSerialized().seq_no;
+    ret = a.getSeqNo() - b.getSeqNo();
   }
   return ret;
 };
 
 const bidComparator = (a: IOrderCore, b: IOrderCore) => {
-  let ret = b.toSerialized().price - a.toSerialized().price;
+  let ret = b.getPrice() - a.getPrice();
   if (ret == 0) {
-    ret = a.toSerialized().seq_no - b.toSerialized().seq_no;
+    ret = a.getSeqNo() - b.getSeqNo();
   }
   return ret;
 };
@@ -107,8 +107,7 @@ export class MatchingEngine {
           price: bid.getPrice(),
         };
 
-        const askCameFirst =
-          bestAsk.toSerialized().seq_no < bestBid.toSerialized().seq_no;
+        const askCameFirst = bestAsk.getSeqNo() < bestBid.getSeqNo();
 
         const first = askCameFirst ? askFulfilled : bidFulfilled;
         const second = askCameFirst ? bidFulfilled : askFulfilled;
@@ -138,8 +137,7 @@ export class MatchingEngine {
           price: bid.getPrice(),
         };
 
-        const askCameFirst =
-          bestAsk.toSerialized().seq_no < bid.toSerialized().seq_no;
+        const askCameFirst = bestAsk.getSeqNo() < bid.getSeqNo();
 
         const first = askCameFirst ? askFulfilled : bidFulfilled;
         const second = askCameFirst ? bidFulfilled : askFulfilled;
@@ -168,8 +166,7 @@ export class MatchingEngine {
           price: ask.getPrice(),
         };
 
-        const askCameFirst =
-          ask.toSerialized().seq_no < bestBid.toSerialized().seq_no;
+        const askCameFirst = ask.getSeqNo() < bestBid.getSeqNo();
 
         const first = askCameFirst ? askFulfilled : bidFulfilled;
         const second = askCameFirst ? bidFulfilled : askFulfilled;
@@ -193,7 +190,7 @@ export class MatchingEngine {
       return BEST_PRICE.ASK;
     }
 
-    return bestBid.toSerialized().price;
+    return bestBid.getPrice();
   };
 
   private bestBidPrice = () => {
@@ -205,7 +202,7 @@ export class MatchingEngine {
       return BEST_PRICE.BID;
     }
 
-    return bestAsk.toSerialized().price;
+    return bestAsk.getPrice();
   };
 
   private getTransactionStatus = ():

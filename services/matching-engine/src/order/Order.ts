@@ -10,6 +10,7 @@ export type Order = {
 export type OrderFulfilled = Pick<Order, "id" | "side" | "price" | "quantity">;
 
 export interface IOrderCore {
+  getSeqNo: () => Sequenced<Order>["seq_no"];
   getId: () => Order["id"];
   getSide: () => Order["side"];
   getType: () => Order["type"];
