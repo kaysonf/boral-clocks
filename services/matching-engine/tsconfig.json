@@ -103,5 +103,5 @@
     
   },
 
-  "exclude": ["./__tests__"]
+  "exclude": ["./dist"]
 }

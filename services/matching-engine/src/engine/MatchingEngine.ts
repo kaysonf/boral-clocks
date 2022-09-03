@@ -1,22 +1,29 @@
 import { OrderRequest } from "../models/OrderRequest";
-import { IOrderCore, LimitOrder, MarketOrder, Order } from "../order";
-import { OperationResult, Sequenced } from "../system";
+import {
+  IOrderCore,
+  LimitOrder,
+  MarketOrder,
+  Order,
+  OrderFulfilled,
+} from "../order";
+import { Sequenced } from "../system";
 import { PriorityQueue } from "../utils";
+import { BEST_PRICE } from "./constants";
 
 type SequencedOrder = Sequenced<Order>;
 
 const askComparator = (a: IOrderCore, b: IOrderCore) => {
-  let ret = a.toOrder().price - b.toOrder().price;
+  let ret = a.toSerialized().price - b.toSerialized().price;
   if (ret == 0) {
-    ret = a.toOrder().seq_no - b.toOrder().seq_no;
+    ret = a.toSerialized().seq_no - b.toSerialized().seq_no;
   }
   return ret;
 };
 
 const bidComparator = (a: IOrderCore, b: IOrderCore) => {
-  let ret = b.toOrder().price - a.toOrder().price;
+  let ret = b.toSerialized().price - a.toSerialized().price;
   if (ret == 0) {
-    ret = a.toOrder().seq_no - b.toOrder().seq_no;
+    ret = a.toSerialized().seq_no - b.toSerialized().seq_no;
   }
   return ret;
 };
@@ -32,7 +39,7 @@ export class MatchingEngine {
 
   public createOrder = (
     orderRequest: Sequenced<OrderRequest>
-  ): OperationResult<SequencedOrder> => {
+  ): SequencedOrder => {
     let order: IOrderCore;
 
     switch (orderRequest.type) {
@@ -54,7 +61,7 @@ export class MatchingEngine {
       }
     }
 
-    switch (order.toOrder().side) {
+    switch (order.getSide()) {
       case "ASK": {
         this.asks.enqueue(order);
         break;
@@ -66,10 +73,115 @@ export class MatchingEngine {
       }
     }
 
-    return {
-      status: "success",
-      data: order.toOrder(),
-    };
+    return order.toSerialized();
+  };
+
+  public settle = (): OrderFulfilled[] => {
+    const ordersFulfilled: OrderFulfilled[] = [];
+
+    let transactionStatus = this.getTransactionStatus();
+
+    while (transactionStatus.canTransact) {
+      const { bestAsk, bestBid } = transactionStatus;
+
+      if (bestAsk.getCurrentQuantity() === bestBid.getCurrentQuantity()) {
+        const bid = this.bids.dequeue();
+        const ask = this.asks.dequeue();
+
+        if (bid === undefined || ask === undefined) {
+          // impossible
+          break;
+        }
+
+        const askFulfilled = {
+          id: ask.getId(),
+          side: ask.getSide(),
+          quantity: ask.getCurrentQuantity(),
+          price: ask.getPrice(),
+        };
+
+        const bidFulfilled = {
+          id: bid.getId(),
+          side: bid.getSide(),
+          quantity: bid.getCurrentQuantity(),
+          price: bid.getPrice(),
+        };
+
+        const askCameFirst =
+          bestAsk.toSerialized().seq_no < bestBid.toSerialized().seq_no;
+
+        const first = askCameFirst ? askFulfilled : bidFulfilled;
+        const second = askCameFirst ? bidFulfilled : askFulfilled;
+
+        ordersFulfilled.push(first);
+        ordersFulfilled.push(second);
+      } else if (bestAsk.getCurrentQuantity() > bestBid.getCurrentQuantity()) {
+        const bid = this.bids.dequeue();
+
+        if (bid === undefined) {
+          // impossible
+          break;
+        }
+
+        bestAsk.decreaseQuantity(bid.getCurrentQuantity());
+        const askFulfilled = {
+          id: bestAsk.getId(),
+          side: bestAsk.getSide(),
+          quantity: bid.getCurrentQuantity(),
+          price: bestAsk.getPrice(),
+        };
+
+        const bidFulfilled = {
+          id: bid.getId(),
+          side: bid.getSide(),
+          quantity: bid.getCurrentQuantity(),
+          price: bid.getPrice(),
+        };
+
+        const askCameFirst =
+          bestAsk.toSerialized().seq_no < bid.toSerialized().seq_no;
+
+        const first = askCameFirst ? askFulfilled : bidFulfilled;
+        const second = askCameFirst ? bidFulfilled : askFulfilled;
+
+        ordersFulfilled.push(first);
+        ordersFulfilled.push(second);
+      } else {
+        const ask = this.asks.dequeue();
+
+        if (ask === undefined) {
+          break;
+        }
+
+        bestBid.decreaseQuantity(ask.getCurrentQuantity());
+        const bidFulfilled = {
+          id: bestBid.getId(),
+          side: bestBid.getSide(),
+          quantity: ask.getCurrentQuantity(),
+          price: bestBid.getPrice(),
+        };
+
+        const askFulfilled = {
+          id: ask.getId(),
+          side: ask.getSide(),
+          quantity: ask.getCurrentQuantity(),
+          price: ask.getPrice(),
+        };
+
+        const askCameFirst =
+          ask.toSerialized().seq_no < bestBid.toSerialized().seq_no;
+
+        const first = askCameFirst ? askFulfilled : bidFulfilled;
+        const second = askCameFirst ? bidFulfilled : askFulfilled;
+
+        ordersFulfilled.push(first);
+        ordersFulfilled.push(second);
+      }
+
+      transactionStatus = this.getTransactionStatus();
+    }
+
+    return ordersFulfilled;
   };
 
   private bestAskPrice = () => {
@@ -78,10 +190,10 @@ export class MatchingEngine {
     const onlyMarketOrders = bestBid?.getType() === "market";
 
     if (bestBid === undefined || onlyMarketOrders) {
-      return -Infinity;
+      return BEST_PRICE.ASK;
     }
 
-    return bestBid.toOrder().price;
+    return bestBid.toSerialized().price;
   };
 
   private bestBidPrice = () => {
@@ -90,9 +202,26 @@ export class MatchingEngine {
     const onlyMarketOrders = bestAsk?.getType() === "market";
 
     if (bestAsk === undefined || onlyMarketOrders) {
-      return Infinity;
+      return BEST_PRICE.BID;
     }
 
-    return bestAsk.toOrder().price;
+    return bestAsk.toSerialized().price;
+  };
+
+  private getTransactionStatus = ():
+    | { canTransact: true; bestAsk: IOrderCore; bestBid: IOrderCore }
+    | { canTransact: false } => {
+    const bestBid = this.bids.peek();
+    const bestAsk = this.asks.peek();
+
+    if (bestBid === undefined || bestAsk === undefined) {
+      return { canTransact: false };
+    }
+
+    if (bestAsk.getPrice() <= bestBid.getPrice()) {
+      return { canTransact: true, bestAsk, bestBid };
+    }
+
+    return { canTransact: false };
   };
 }

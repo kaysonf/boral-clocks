@@ -1,130 +1,112 @@
-import { MatchingEngine } from "../src/engine";
-import { LimitOrderRequest, MarketOrderRequest } from "../src/models/OrderRequest";
+import { BEST_PRICE, MatchingEngine } from "../src/engine";
+import {
+  LimitOrderRequest,
+  MarketOrderRequest,
+} from "../src/models/OrderRequest";
+
 import { Order } from "../src/order";
 import { Sequenced } from "../src/system";
 
+describe("matching engine creating orders", () => {
+  let id = 0;
+  const idGenFn = () => String(++id);
+  let matchingEngine = new MatchingEngine(idGenFn);
 
-describe("matching engine basic", () => {
-    let id = 0;
-    const idGenFn = () => String(++id);
-    let matchingEngine = new MatchingEngine(idGenFn);
-    
-    let seq_no = 0;
-    const nextSeq = () => ++seq_no
+  let seq_no = 0;
+  const nextSeq = () => ++seq_no;
 
+  beforeEach(() => {
+    id = 0;
+    seq_no = 0;
 
-    beforeEach(() => {
-        id = 0;
-        seq_no = 0;
+    matchingEngine = new MatchingEngine(idGenFn);
+  });
 
-        matchingEngine = new MatchingEngine(idGenFn);
-    });
+  test("should create LIMIT orders succesfully", () => {
+    const askLimitOrderRequest: Sequenced<LimitOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "limit",
+      price: 1,
+      quantity: 1,
+      side: "ASK",
+    };
 
-    test("should create LIMIT orders succesfully", () => {
-        const askLimitOrderRequest: Sequenced<LimitOrderRequest> = {
-            seq_no: nextSeq(),
-            type: "limit",
-            price: 1,
-            quantity: 1,
-            side: "ASK",
-        };
+    const order = matchingEngine.createOrder(askLimitOrderRequest);
 
-        const result = matchingEngine.createOrder(askLimitOrderRequest);
+    const expectedOrder: Sequenced<Order> = {
+      ...askLimitOrderRequest,
+      price: 1,
+      id: "1",
+      status: "ACTIVE",
+    };
 
-        if (result.status === "success") {
-            const expectedOrder: Sequenced<Order> = {
-                ...askLimitOrderRequest,
-                price: 1,
-                id: "1",
-                status: "ACTIVE",
-            }
+    expect(order).toStrictEqual(expectedOrder);
+  });
 
-            expect(result.data).toStrictEqual(expectedOrder);
-        } else {
-            fail("order should be successfully created")
-        }
-    });
+  test("should create MARKET orders succesfully - no LIMIT orders in market", () => {
+    const askMarketOrderRequest: Sequenced<MarketOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "market",
+      quantity: 1,
+      side: "ASK",
+    };
 
-    test("should create MARKET orders succesfully - no LIMIT orders in market", () => {
-        const askMarketOrderRequest: Sequenced<MarketOrderRequest> = {
-            seq_no: nextSeq(),
-            type: "market",
-            quantity: 1,
-            side: "ASK",
-        };
+    const askOrder = matchingEngine.createOrder(askMarketOrderRequest);
+    const expectedAskOrder: Sequenced<Order> = {
+      ...askMarketOrderRequest,
+      price: BEST_PRICE.ASK,
+      id: "1",
+      status: "ACTIVE",
+    };
 
-        const askResult = matchingEngine.createOrder(askMarketOrderRequest);
+    expect(askOrder).toStrictEqual(expectedAskOrder);
 
-        if (askResult.status === "success") {
-            const expectedOrder: Sequenced<Order> = {
-                ...askMarketOrderRequest,
-                price: -Infinity,
-                id: "1",
-                status: "ACTIVE",
-            }
+    const bidMarketOrderRequest: Sequenced<MarketOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "market",
+      quantity: 1,
+      side: "BID",
+    };
 
-            expect(askResult.data).toStrictEqual(expectedOrder);
-        } else {
-            fail("order should be successfully created")
-        }
+    const bidOrder = matchingEngine.createOrder(bidMarketOrderRequest);
 
-        const bidMarketOrderRequest: Sequenced<MarketOrderRequest> = {
-            seq_no: nextSeq(),
-            type: "market",
-            quantity: 1,
-            side: "BID",
-        };
+    const expectedBidOrder: Sequenced<Order> = {
+      ...bidMarketOrderRequest,
+      price: BEST_PRICE.BID,
+      id: "2",
+      status: "ACTIVE",
+    };
 
-        const bidResult = matchingEngine.createOrder(bidMarketOrderRequest);
+    expect(bidOrder).toStrictEqual(expectedBidOrder);
+  });
 
-        if (bidResult.status === "success") {
-            const expectedOrder: Sequenced<Order> = {
-                ...bidMarketOrderRequest,
-                price: Infinity,
-                id: "2",
-                status: "ACTIVE",
-            }
+  test("should create MARKET orders succesfully - LIMIT orders in market", () => {
+    const bidLimitOrderRequest: Sequenced<LimitOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "limit",
+      price: 1,
+      quantity: 1,
+      side: "BID",
+    };
 
-            expect(bidResult.data).toStrictEqual(expectedOrder);
-        } else {
-            fail("order should be successfully created")
-        }
+    matchingEngine.createOrder(bidLimitOrderRequest);
 
-    })
+    const askMarketOrderRequest: Sequenced<MarketOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "market",
+      quantity: 1,
+      side: "ASK",
+    };
 
-    test("should create MARKET orders succesfully - LIMIT orders in market", () => {
-        const bidLimitOrderRequest: Sequenced<LimitOrderRequest> = {
-            seq_no: nextSeq(),
-            type: "limit",
-            price: 1,
-            quantity: 1,
-            side: "BID",
-        };
+    const order = matchingEngine.createOrder(askMarketOrderRequest);
 
-        matchingEngine.createOrder(bidLimitOrderRequest);
+    const expectedOrder: Sequenced<Order> = {
+      ...askMarketOrderRequest,
+      price: bidLimitOrderRequest.price,
+      id: "2",
+      status: "ACTIVE",
+    };
 
-
-        const askMarketOrderRequest: Sequenced<MarketOrderRequest> = {
-            seq_no: nextSeq(),
-            type: "market",
-            quantity: 1,
-            side: "ASK",
-        };
-
-        const result = matchingEngine.createOrder(askMarketOrderRequest);
-
-        if (result.status === "success") {
-            const expectedOrder: Sequenced<Order> = {
-                ...askMarketOrderRequest,
-                price: bidLimitOrderRequest.price,
-                id: "2",
-                status: "ACTIVE",
-            }
-
-            expect(result.data).toStrictEqual(expectedOrder);
-        } else {
-            fail("order should be successfully created")
-        }
-
-    })
+    expect(order).toStrictEqual(expectedOrder);
+  });
 });
