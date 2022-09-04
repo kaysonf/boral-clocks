@@ -10,7 +10,7 @@ import { Sequenced } from "../src/system";
 describe("matching engine creating orders", () => {
   let id = 0;
   const idGenFn = () => String(++id);
-  let matchingEngine = new MatchingEngine(idGenFn);
+  let matchingEngine = new MatchingEngine(idGenFn, 1);
 
   let seq_no = 0;
   const nextSeq = () => ++seq_no;
@@ -19,7 +19,7 @@ describe("matching engine creating orders", () => {
     id = 0;
     seq_no = 0;
 
-    matchingEngine = new MatchingEngine(idGenFn);
+    matchingEngine = new MatchingEngine(idGenFn, 1);
   });
 
   test("should create LIMIT orders succesfully", () => {

@@ -8,7 +8,6 @@ import {
 } from "../order";
 import { Sequenced } from "../system";
 import { PriorityQueue } from "../utils";
-import { BEST_PRICE } from "./constants";
 
 type SequencedOrder = Sequenced<Order>;
 
@@ -29,15 +28,18 @@ const bidComparator = (a: IOrderCore, b: IOrderCore) => {
 };
 
 export class MatchingEngine {
-  private bids: PriorityQueue<IOrderCore>;
   private asks: PriorityQueue<IOrderCore>;
+  private bids: PriorityQueue<IOrderCore>;
 
-  private lastTransactedBid = BEST_PRICE.ASK;
-  private lastTransactedAsk = BEST_PRICE.BID;
+  private lastAskPrice: number;
+  private lastBidPrice: number;
 
-  constructor(private _generateId: () => string) {
-    this.bids = new PriorityQueue<IOrderCore>(bidComparator);
+  constructor(private _generateId: () => string, marketPrice: number) {
     this.asks = new PriorityQueue<IOrderCore>(askComparator);
+    this.bids = new PriorityQueue<IOrderCore>(bidComparator);
+
+    this.lastAskPrice = marketPrice;
+    this.lastBidPrice = marketPrice;
   }
 
   public createOrder = (
@@ -89,99 +91,17 @@ export class MatchingEngine {
     while (priceLevels.overlap) {
       const { bestAsk, bestBid } = priceLevels;
 
-      // this.lastTransactedAskPrice = bestAsk.getPrice();
-      // this.lastTransactedBidPrice = bestBid.getPrice();
+      const { askFulfilled, bidFulfilled } = this.fillOrders(bestAsk, bestBid);
 
-      if (bestAsk.getCurrentQuantity() === bestBid.getCurrentQuantity()) {
-        const bid = this.bids.dequeue();
-        const ask = this.asks.dequeue();
+      const askCameFirst = bestAsk.getSeqNo() < bestBid.getSeqNo();
+      const first = askCameFirst ? askFulfilled : bidFulfilled;
+      const second = askCameFirst ? bidFulfilled : askFulfilled;
+      ordersFulfilled.push(first);
+      ordersFulfilled.push(second);
 
-        if (bid === undefined || ask === undefined) {
-          // impossible
-          break;
-        }
+      this.removeFilledOrders(bestAsk, bestBid);
 
-        const askFulfilled = {
-          id: ask.getId(),
-          side: ask.getSide(),
-          quantity: ask.getCurrentQuantity(),
-          price: ask.getPrice(),
-        };
-
-        const bidFulfilled = {
-          id: bid.getId(),
-          side: bid.getSide(),
-          quantity: bid.getCurrentQuantity(),
-          price: bid.getPrice(),
-        };
-
-        const askCameFirst = bestAsk.getSeqNo() < bestBid.getSeqNo();
-
-        const first = askCameFirst ? askFulfilled : bidFulfilled;
-        const second = askCameFirst ? bidFulfilled : askFulfilled;
-
-        ordersFulfilled.push(first);
-        ordersFulfilled.push(second);
-      } else if (bestAsk.getCurrentQuantity() > bestBid.getCurrentQuantity()) {
-        const bid = this.bids.dequeue();
-
-        if (bid === undefined) {
-          // impossible
-          break;
-        }
-
-        bestAsk.decreaseQuantity(bid.getCurrentQuantity());
-        const askFulfilled = {
-          id: bestAsk.getId(),
-          side: bestAsk.getSide(),
-          quantity: bid.getCurrentQuantity(),
-          price: bestAsk.getPrice(),
-        };
-
-        const bidFulfilled = {
-          id: bid.getId(),
-          side: bid.getSide(),
-          quantity: bid.getCurrentQuantity(),
-          price: bid.getPrice(),
-        };
-
-        const askCameFirst = bestAsk.getSeqNo() < bid.getSeqNo();
-
-        const first = askCameFirst ? askFulfilled : bidFulfilled;
-        const second = askCameFirst ? bidFulfilled : askFulfilled;
-
-        ordersFulfilled.push(first);
-        ordersFulfilled.push(second);
-      } else {
-        const ask = this.asks.dequeue();
-
-        if (ask === undefined) {
-          break;
-        }
-
-        bestBid.decreaseQuantity(ask.getCurrentQuantity());
-        const bidFulfilled = {
-          id: bestBid.getId(),
-          side: bestBid.getSide(),
-          quantity: ask.getCurrentQuantity(),
-          price: bestBid.getPrice(),
-        };
-
-        const askFulfilled = {
-          id: ask.getId(),
-          side: ask.getSide(),
-          quantity: ask.getCurrentQuantity(),
-          price: ask.getPrice(),
-        };
-
-        const askCameFirst = ask.getSeqNo() < bestBid.getSeqNo();
-
-        const first = askCameFirst ? askFulfilled : bidFulfilled;
-        const second = askCameFirst ? bidFulfilled : askFulfilled;
-
-        ordersFulfilled.push(first);
-        ordersFulfilled.push(second);
-      }
+      this.updateLastPrices(bestBid, bestAsk);
 
       priceLevels = this.priceLevelsOverlap();
     }
@@ -190,27 +110,11 @@ export class MatchingEngine {
   };
 
   private getMarketAskPrice = () => {
-    const bestBid = this.bids.peek();
-
-    const onlyMarketOrders = bestBid?.getType() === "market";
-
-    if (bestBid === undefined || onlyMarketOrders) {
-      return BEST_PRICE.ASK;
-    }
-
-    return bestBid.getPrice();
+    return this.lastAskPrice;
   };
 
   private getMarketBidPrice = () => {
-    const bestAsk = this.asks.peek();
-
-    const onlyMarketOrders = bestAsk?.getType() === "market";
-
-    if (bestAsk === undefined || onlyMarketOrders) {
-      return BEST_PRICE.BID;
-    }
-
-    return bestAsk.getPrice();
+    return this.lastBidPrice;
   };
 
   private priceLevelsOverlap = ():
@@ -229,4 +133,44 @@ export class MatchingEngine {
 
     return { overlap: false };
   };
+
+  private updateLastPrices(bestBid: IOrderCore, bestAsk: IOrderCore) {
+    this.lastBidPrice = bestBid.getPrice();
+    this.lastAskPrice = bestAsk.getPrice();
+  }
+
+  private removeFilledOrders(bestAsk: IOrderCore, bestBid: IOrderCore) {
+    if (bestAsk.getCurrentQuantity() === 0) {
+      this.asks.dequeue();
+    }
+
+    if (bestBid.getCurrentQuantity() === 0) {
+      this.bids.dequeue();
+    }
+  }
+
+  private fillOrders(bestAsk: IOrderCore, bestBid: IOrderCore) {
+    const quantityFilled = Math.min(
+      bestAsk.getCurrentQuantity(),
+      bestBid.getCurrentQuantity()
+    );
+
+    const askFulfilled = {
+      id: bestAsk.getId(),
+      side: bestAsk.getSide(),
+      quantity: quantityFilled,
+      price: bestAsk.getPrice(),
+    };
+
+    const bidFulfilled = {
+      id: bestBid.getId(),
+      side: bestBid.getSide(),
+      quantity: quantityFilled,
+      price: bestBid.getPrice(),
+    };
+
+    bestAsk.decreaseQuantity(quantityFilled);
+    bestBid.decreaseQuantity(quantityFilled);
+    return { askFulfilled, bidFulfilled };
+  }
 }
