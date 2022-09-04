@@ -3,7 +3,7 @@ import {
   LimitOrderRequest,
   MarketOrderRequest,
 } from "../src/models/OrderRequest";
-import { OrderFulfilled } from "../src/order";
+import { OrderFilled } from "../src/order";
 import { Sequenced } from "../src/system";
 
 describe("matching engine settle", () => {
@@ -45,7 +45,7 @@ describe("matching engine settle", () => {
 
     const ordersFulfilled1 = matchingEngine.settle();
 
-    const expectedOrdersFulfilled1: OrderFulfilled[] = [
+    const expectedOrdersFulfilled1: OrderFilled[] = [
       {
         id: "1",
         side: askLimitOrderRequest.side,
@@ -74,7 +74,7 @@ describe("matching engine settle", () => {
 
     const ordersFulfilled2 = matchingEngine.settle();
 
-    const expectedOrdersFulfilled2: OrderFulfilled[] = [
+    const expectedOrdersFulfilled2: OrderFilled[] = [
       {
         id: "1",
         side: askLimitOrderRequest.side,
@@ -106,7 +106,7 @@ describe("matching engine settle", () => {
 
     const ordersFulfilled1 = matchingEngine.settle();
 
-    const noOrdersFilled: OrderFulfilled[] = [];
+    const noOrdersFilled: OrderFilled[] = [];
 
     expect(ordersFulfilled1).toStrictEqual(noOrdersFilled);
 
@@ -121,7 +121,7 @@ describe("matching engine settle", () => {
 
     const ordersFulfilled2 = matchingEngine.settle();
 
-    const expectedOrdersFulfilled: OrderFulfilled[] = [
+    const expectedOrdersFulfilled: OrderFilled[] = [
       {
         id: "1",
         side: askMarketOrderRequest.side,
@@ -163,7 +163,7 @@ describe("matching engine settle", () => {
 
     const ordersFulfilled1 = matchingEngine.settle();
 
-    const expectedOrdersFulfilled1: OrderFulfilled[] = [
+    const expectedOrdersFulfilled1: OrderFilled[] = [
       {
         id: "1",
         side: askMarketOrderRequest.side,
@@ -191,7 +191,7 @@ describe("matching engine settle", () => {
 
     const ordersFulfilled2 = matchingEngine.settle();
 
-    const expectedOrdersFulfilled2: OrderFulfilled[] = [
+    const expectedOrdersFulfilled2: OrderFilled[] = [
       {
         id: "1",
         side: askMarketOrderRequest.side,
@@ -220,7 +220,7 @@ describe("matching engine settle", () => {
 
     const ordersFulfilled3 = matchingEngine.settle();
 
-    const expectedOrdersFulfilled3: OrderFulfilled[] = [
+    const expectedOrdersFulfilled3: OrderFilled[] = [
       {
         id: "3",
         side: bidLimitOrderRequest1.side,
@@ -236,5 +236,64 @@ describe("matching engine settle", () => {
     ];
 
     expect(ordersFulfilled3).toStrictEqual(expectedOrdersFulfilled3);
+  });
+
+  test("should not execute CANCELLED orders", () => {
+    const askMarketOrderRequest: Sequenced<MarketOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "market",
+      quantity: 2,
+      side: "ASK",
+    };
+
+    matchingEngine.createOrder(askMarketOrderRequest);
+
+    const HIGHER_THAN_INIT_PRICE = INIT_MARKET_PRICE + 1;
+
+    const bidLimitOrderRequest1: Sequenced<LimitOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "limit",
+      price: HIGHER_THAN_INIT_PRICE,
+      quantity: 1,
+      side: "BID",
+    };
+
+    matchingEngine.createOrder(bidLimitOrderRequest1);
+
+    const ordersFilled1 = matchingEngine.settle();
+
+    const expectedOrdersFilled1: OrderFilled[] = [
+      {
+        id: "1",
+        side: askMarketOrderRequest.side,
+        price: INIT_MARKET_PRICE,
+        quantity: bidLimitOrderRequest1.quantity,
+      },
+      {
+        id: "2",
+        side: bidLimitOrderRequest1.side,
+        price: bidLimitOrderRequest1.price,
+        quantity: bidLimitOrderRequest1.quantity,
+      },
+    ];
+
+    expect(ordersFilled1).toStrictEqual(expectedOrdersFilled1);
+
+    // askMarketOrderRequest will now have 1 existing quantity
+    matchingEngine.cancelOrder("1");
+
+    const bidLimitOrderRequest2: Sequenced<LimitOrderRequest> = {
+      seq_no: nextSeq(),
+      type: "limit",
+      price: HIGHER_THAN_INIT_PRICE,
+      quantity: 1,
+      side: "BID",
+    };
+
+    matchingEngine.createOrder(bidLimitOrderRequest2);
+
+    const ordersFilled2 = matchingEngine.settle();
+
+    expect(ordersFilled2).toStrictEqual([]);
   });
 });

@@ -14,14 +14,4 @@ export type MarketOrderRequest = {
 
 export type OrderRequest = LimitOrderRequest | MarketOrderRequest;
 
-export const isLimitOrderEntry = (
-  orderEntry: OrderRequest
-): orderEntry is LimitOrderRequest => {
-  return orderEntry.type === "limit";
-};
-
-export const isMarketOrderEntry = (
-  orderEntry: OrderRequest
-): orderEntry is MarketOrderRequest => {
-  return orderEntry.type === "market";
-};
+export type CancelOrder = { id: string };

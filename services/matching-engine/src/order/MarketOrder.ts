@@ -14,6 +14,12 @@ export class MarketOrder implements IOrderCore {
     this._currentQuantity = this._orderRequest.quantity;
   }
 
+  public getStatus = () => this._status;
+
+  public setStatus = (status: Order["status"]) => {
+    this._status = status;
+  };
+
   public getId = () => this._id;
 
   public getSeqNo = () => this._orderRequest.seq_no;

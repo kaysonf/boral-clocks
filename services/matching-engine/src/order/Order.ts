@@ -6,12 +6,14 @@ export type Order = {
   status: "ACTIVE" | "CANCELLED" | "FILLED" | "REJECTED";
 } & OrderRequest;
 
-export type OrderFulfilled = Pick<Order, "id" | "side" | "quantity"> & {
+export type OrderFilled = Pick<Order, "id" | "side" | "quantity"> & {
   price: number;
 };
 
 export interface IOrderCore {
   getSeqNo: () => Sequenced<Order>["seq_no"];
+  getStatus: () => Order["status"];
+  setStatus: (status: Order["status"]) => void;
   getId: () => Order["id"];
   getSide: () => Order["side"];
   getType: () => Order["type"];
