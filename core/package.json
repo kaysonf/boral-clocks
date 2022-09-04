@@ -1,15 +1,7 @@
 {
-    "name": "matching-engine",
+    "name": "core",
     "scripts": {
-        "build": "rm -rf ./dist && tsc -b tsconfig.json",
-        "serve": "node ./dist/server.js",
-        "dev": "tsc-watch --onSuccess \"yarn serve\"",
         "test": "jest ./__tests__ --verbose"
-    },
-    "dependencies": {
-        "core": "workspace:^",
-        "fastify": "^4.5.2",
-        "tsc-watch": "^5.0.3"
     },
     "devDependencies": {
         "@babel/preset-env": "^7.18.10",

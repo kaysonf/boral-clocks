@@ -1,5 +1,5 @@
-import { OrderRequest } from "../models/OrderRequest";
-import { Sequenced } from "../system";
+import { Sequenced } from "@core/sequencer";
+import { OrderRequest } from "@matching-engine/models";
 
 export type Order = {
   id: string;

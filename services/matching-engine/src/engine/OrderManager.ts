@@ -1,4 +1,4 @@
-import { IOrderCore, OrderFilled } from "../order";
+import { IOrderCore, OrderFilled } from "@matching-engine/order";
 
 export const matchOrders = (
   bestAsk: IOrderCore,

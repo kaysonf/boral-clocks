@@ -1,5 +1,6 @@
-import { MarketOrderRequest } from "../models/OrderRequest";
-import { Sequenced } from "../system";
+import { Sequenced } from "@core/sequencer";
+import { MarketOrderRequest } from "@matching-engine/models";
+
 import { IOrderCore, Order } from "./Order";
 
 export class MarketOrder implements IOrderCore {

@@ -1,5 +1,5 @@
-import { LimitOrderRequest } from "../models/OrderRequest";
-import { Sequenced } from "../system";
+import { Sequenced } from "@core/sequencer";
+import { LimitOrderRequest } from "@matching-engine/models";
 import { IOrderCore, Order } from "./Order";
 
 export class LimitOrder implements IOrderCore {

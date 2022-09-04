@@ -1,13 +1,15 @@
-import { OrderRequest } from "../models/OrderRequest";
+import { Sequenced } from "@core/sequencer";
+import { OperationResult } from "@core/system";
+import { OrderRequest } from "@matching-engine/models";
 import {
   IOrderCore,
   LimitOrder,
   MarketOrder,
   Order,
-  OrderFilled
-} from "../order";
-import { OperationResult, Sequenced } from "../system";
-import { PriorityQueue } from "../utils";
+  OrderFilled,
+} from "@matching-engine/order";
+
+import { PriorityQueue } from "@matching-engine/utils";
 import * as OrderManager from "./OrderManager";
 
 type SequencedOrder = Sequenced<Order>;

@@ -1,10 +1,8 @@
-import { MatchingEngine } from "../src/engine";
-import {
-  LimitOrderRequest,
-  MarketOrderRequest,
-} from "../src/models/OrderRequest";
-import { OrderFilled } from "../src/order";
-import { Sequenced } from "../src/system";
+import { MatchingEngine } from "@matching-engine/engine";
+import { LimitOrderRequest, MarketOrderRequest } from "@matching-engine/models";
+
+import { Sequenced } from "@core/sequencer";
+import { OrderFilled } from "@matching-engine/order";
 
 describe("matching engine settle", () => {
   let id = 0;
