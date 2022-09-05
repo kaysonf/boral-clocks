@@ -4,7 +4,7 @@
         "build": "rm -rf ./dist && tsc -b tsconfig.json",
         "serve": "node ./dist/server.js",
         "dev": "tsc-watch --onSuccess \"yarn serve\"",
-        "test": "jest ./__tests__ --verbose"
+        "test": "jest ./__tests__ --verbose --coverage"
     },
     "dependencies": {
         "core": "workspace:^",

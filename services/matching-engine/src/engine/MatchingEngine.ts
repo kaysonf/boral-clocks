@@ -107,7 +107,7 @@ export class MatchingEngine {
       ordersFulfilled.push(first);
       ordersFulfilled.push(second);
 
-      this.removeFilledOrders(bestAsk, bestBid);
+      this.removeFilledOrders();
 
       this.updateMarketPrices(bestBid, bestAsk);
 
@@ -164,13 +164,16 @@ export class MatchingEngine {
     this.lastAskPrice = bestAsk.getPrice();
   }
 
-  private removeFilledOrders(bestAsk: IOrderCore, bestBid: IOrderCore) {
-    if (bestAsk.getStatus() === "FILLED") {
+  private removeFilledOrders() {
+    const bestAsk = this.asks.peek();
+
+    if (bestAsk !== undefined && bestAsk.getStatus() === "FILLED") {
       this.orderMap.delete(bestAsk.getId());
       this.asks.dequeue();
     }
 
-    if (bestBid.getStatus() === "FILLED") {
+    const bestBid = this.bids.peek();
+    if (bestBid !== undefined && bestBid.getStatus() === "FILLED") {
       this.orderMap.delete(bestBid.getId());
       this.bids.dequeue();
     }

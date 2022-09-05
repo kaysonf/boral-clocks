@@ -1,8 +1,9 @@
 import { Message } from "./Message";
 import { INetworkProtocol } from "./network/INetworkProtocol";
+import { Sequence } from "./Sequence";
 
 export class Contributor<Pub, Rec> {
-  private _seq_no = 0;
+  private _sequence = new Sequence();
 
   private _resendQueue: Pub[] = [];
 
@@ -17,7 +18,10 @@ export class Contributor<Pub, Rec> {
 
   publish = (m: Pub) => {
     this._networkProtocol.send(
-      this.preparePubMessage(m, this.nextSeqNo() + this._resendQueue.length)
+      this.preparePubMessage(
+        m,
+        this._sequence.getNext() + this._resendQueue.length
+      )
     );
 
     this._resendQueue.push(m);
@@ -25,9 +29,9 @@ export class Contributor<Pub, Rec> {
 
   private onReceieve = (m: Message<Rec>) => {
     const outOfSequence =
-      m.publisher !== this._publisher && m.seq_no > this.nextSeqNo();
+      m.publisher !== this._publisher && m.seq_no > this._sequence.getNext();
 
-    this._seq_no = m.seq_no;
+    this._sequence.setSeqNo(m.seq_no);
 
     if (outOfSequence) {
       this.resendMessagesInQueue();
@@ -37,8 +41,6 @@ export class Contributor<Pub, Rec> {
 
     this._onReceieve(m);
   };
-
-  private nextSeqNo = () => this._seq_no + 1;
 
   private preparePubMessage = (m: Pub, seq_no: number): Message<Pub> => ({
     type: "PUBLISH",
@@ -51,7 +53,7 @@ export class Contributor<Pub, Rec> {
   private resendMessagesInQueue() {
     this._resendQueue.forEach((m, idx) => {
       this._networkProtocol.send(
-        this.preparePubMessage(m, this.nextSeqNo() + idx)
+        this.preparePubMessage(m, this._sequence.getNext() + idx)
       );
     });
   }

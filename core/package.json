@@ -1,7 +1,7 @@
 {
     "name": "core",
     "scripts": {
-        "test": "jest ./__tests__ --verbose"
+        "test": "jest ./__tests__ --verbose --coverage"
     },
     "devDependencies": {
         "@babel/preset-env": "^7.18.10",
