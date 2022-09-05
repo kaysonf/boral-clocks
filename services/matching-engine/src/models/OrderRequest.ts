@@ -13,5 +13,3 @@ export type MarketOrderRequest = {
 } & BaseOrderRequest;
 
 export type OrderRequest = LimitOrderRequest | MarketOrderRequest;
-
-export type CancelOrder = { id: string };
