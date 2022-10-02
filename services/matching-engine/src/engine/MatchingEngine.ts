@@ -6,7 +6,7 @@ import {
   LimitOrder,
   MarketOrder,
   Order,
-  OrderFilled,
+  OrderFilled
 } from "@matching-engine/order";
 
 import { PriorityQueue } from "@matching-engine/utils";
@@ -85,12 +85,14 @@ export class MatchingEngine {
       OrderManager.priceLevelsOverlap(bestAsk, bestBid)
     ) {
       if (bestAsk.getStatus() === "CANCELLED") {
+        this.orderMap.delete(bestAsk.getId());
         this.asks.dequeue();
         next();
         continue;
       }
 
       if (bestBid.getStatus() === "CANCELLED") {
+        this.orderMap.delete(bestBid.getId());
         this.bids.dequeue();
         next();
         continue;

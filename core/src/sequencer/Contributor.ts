@@ -16,30 +16,61 @@ export class Contributor<Pub, Rec> {
     this._networkProtocol.on = this.onReceieve;
   }
 
+  // TODO what if i dont get a response?
+  // TODO what if response is of previous seq_no?
+  // maybe consider sending 1 message at a time only, wait for responses
   publish = (m: Pub) => {
-    this._networkProtocol.send(
-      this.preparePubMessage(
-        m,
-        this._sequence.getNext() + this._resendQueue.length
-      )
-    );
+    if (this._resendQueue.length === 0) {
+      this._networkProtocol.send(
+        this.preparePubMessage(m, this._sequence.getNext())
+      );
+    }
 
     this._resendQueue.push(m);
   };
 
+  // TODO what if i dont get a response?
+  // TODO what if response is of previous seq_no?
   private onReceieve = (m: Message<Rec>) => {
-    const outOfSequence =
-      m.publisher !== this._publisher && m.seq_no > this._sequence.getNext();
+    // TODO check based on msg type
+    // ACK with same sequence
+    // PUBLISH with next expected sequence
 
-    this._sequence.setSeqNo(m.seq_no);
+    switch (m.type) {
+      case "ACK": {
+        /**
+         * 1 ->
+         * <- 1 ACK
+         */
 
-    if (outOfSequence) {
-      this.resendMessagesInQueue();
-    } else {
-      this._resendQueue.shift();
+        const inSequence = m.seq_no === this._sequence.getNext();
+
+        if (inSequence) {
+          this._resendQueue.shift();
+          this._sequence.setSeqNo(this._sequence.getNext());
+        }
+
+        this.sendNextMessageInQueue();
+
+        break;
+      }
+
+      case "PUBLISH": {
+        const outOfSequence = m.seq_no !== this._sequence.getNext();
+
+        this._sequence.setSeqNo(m.seq_no);
+
+        if (!outOfSequence) {
+          this._resendQueue.shift();
+        }
+
+        this.sendNextMessageInQueue();
+
+        this._onReceieve(m);
+
+        break;
+      }
     }
-
-    this._onReceieve(m);
   };
 
   private preparePubMessage = (m: Pub, seq_no: number): Message<Pub> => ({
@@ -50,11 +81,12 @@ export class Contributor<Pub, Rec> {
     message: m,
   });
 
-  private resendMessagesInQueue() {
-    this._resendQueue.forEach((m, idx) => {
+  private sendNextMessageInQueue = () => {
+    if (this._resendQueue.length > 0) {
+      const message = this._resendQueue[0];
       this._networkProtocol.send(
-        this.preparePubMessage(m, this._sequence.getNext() + idx)
+        this.preparePubMessage(message, this._sequence.getNext())
       );
-    });
-  }
+    }
+  };
 }
