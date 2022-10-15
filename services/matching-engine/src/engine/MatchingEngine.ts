@@ -6,7 +6,7 @@ import {
   LimitOrder,
   MarketOrder,
   Order,
-  OrderFilled
+  OrderFilled,
 } from "@matching-engine/order";
 
 import { PriorityQueue } from "@matching-engine/utils";

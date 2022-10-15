@@ -8,4 +8,9 @@ export class Sequence {
   setSeqNo = (seq_no: number) => {
     this._seq_no = seq_no;
   };
+
+  increment = () => {
+    this._seq_no = this.getNext();
+    return this._seq_no;
+  };
 }

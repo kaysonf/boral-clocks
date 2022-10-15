@@ -1,8 +1,8 @@
-import { Message } from "./Message";
+import { Message, Messaging } from "./Message";
 import { INetworkProtocol } from "./network/INetworkProtocol";
 import { Sequence } from "./Sequence";
 
-export class Contributor<Pub, Rec> {
+export class Contributor<Pub, Rec> implements Messaging<Pub, Rec> {
   private _sequence = new Sequence();
 
   private _resendQueue: Pub[] = [];
@@ -16,9 +16,6 @@ export class Contributor<Pub, Rec> {
     this._networkProtocol.on = this.onReceieve;
   }
 
-  // TODO what if i dont get a response?
-  // TODO what if response is of previous seq_no?
-  // maybe consider sending 1 message at a time only, wait for responses
   publish = (m: Pub) => {
     if (this._resendQueue.length === 0) {
       this._networkProtocol.send(
@@ -29,20 +26,9 @@ export class Contributor<Pub, Rec> {
     this._resendQueue.push(m);
   };
 
-  // TODO what if i dont get a response?
-  // TODO what if response is of previous seq_no?
-  private onReceieve = (m: Message<Rec>) => {
-    // TODO check based on msg type
-    // ACK with same sequence
-    // PUBLISH with next expected sequence
-
+  onReceieve = (m: Message<Rec>) => {
     switch (m.type) {
       case "ACK": {
-        /**
-         * 1 ->
-         * <- 1 ACK
-         */
-
         const inSequence = m.seq_no === this._sequence.getNext();
 
         if (inSequence) {
